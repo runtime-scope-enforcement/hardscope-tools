@@ -1,0 +1,13 @@
+a.out
+scen.o
+scen.so
+test*.c.*r.*
+test*.c.*t.*
+test*.c.*i.*
+*.swp
+test.s
+tests/test_*/*
+tests/test_*.o
+tests/test_*.s
+tests/test_*.bin
+tests/test_*.disas
