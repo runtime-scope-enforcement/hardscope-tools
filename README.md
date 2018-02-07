@@ -15,6 +15,7 @@ version targets GCC 6.1.0.
     ├── gcc-plugin            : GCC plug-in source
     ├── include/xscen.h       : C macros for xscen annotations
     ├── bare                  : RISC-V / Pulpino platform files
+    ├── scripts               : Utility scripts
     ├── tests                 : Directory containing the test cases
     ├── tests/all_tests.sh    : Script to run all tests
     ├── tests/compile_test.sh : Script to compile test case

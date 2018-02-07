@@ -1,0 +1,111 @@
+#!/usr/bin/env python3
+# 
+# Copyright 2017 Aalto University, Secure System Group
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Author: Thomas Nyman <thomas.nyman@aalto.fi>
+#
+import sys
+import re
+import logging as log
+from argparse import ArgumentParser, FileType, Namespace
+from enum import Enum
+
+LOGLEVEL = {None:log.ERROR, 1:log.WARNING, 2:log.INFO, 3: log.DEBUG}
+CYCLES_PER_INSTR = {
+        'addi': 1,
+        'beq': 1,
+        'bne': 3,
+        'jal': 2,
+        'jalr': 2,
+        'lui': 1,
+        'lw': 2,
+        'nop': 1,
+        'HDSCOPE sbent': 1,
+        'HDSCOPE sbxit': 1,
+        'HDSCOPE srbse': 1,
+        'HDSCOPE srlmt': 1,
+        'HDSCOPE srsub': 2,
+        'HDSCOPE srdlg': 1,
+        'HDSCOPE srdlgm': 1
+        }
+
+def main(stream=None):
+    parser = ArgumentParser(prog=sys.argv[0])
+    
+    parser.add_argument('-v', '--verbose', action='count',
+            help='enable verbose output')
+    
+    parser.add_argument('tracefile', type=FileType('r'),
+            help='ModelSim tracefile')
+    
+    args = parser.parse_args()
+
+    log.basicConfig(format='%(message)s', level=LOGLEVEL.get(args.verbose, log.DEBUG), stream=stream or sys.stderr)
+    
+    log.debug(args)
+    
+    tmp = []
+    
+    for line in args.tracefile:
+        tmp.append(list(filter(None,re.split("(?<!,)(?<!HDSCOPE)\s",line))))
+    
+    trace = [Namespace(
+        time = y[0],
+        cycles = int(z[1]) - int(y[1]),
+        pc = y[2],
+        instr = y[3],
+        mnemonic = y[4],
+        stall = (int(y[1]) - int(x[1])) - CYCLES_PER_INSTR[x[4]] if 'HDSCOPE' in y[4] else 0
+        #operands = y[5],
+        )
+        for x,y,z in zip(tmp[1:],tmp[2:],tmp[3:])]
+
+    hdscope = {
+            'sbent': [x for x in trace if x.mnemonic == 'HDSCOPE sbent'],
+            'sbxit' : [x for x in trace if x.mnemonic == 'HDSCOPE sbxit'],
+            'srbse' : [x for x in trace if x.mnemonic == 'HDSCOPE srbse'],
+            'srlmt' : [x for x in trace if x.mnemonic == 'HDSCOPE srlmt'],
+            'srdlg' : [x for x in trace if x.mnemonic == 'HDSCOPE srdlg'],
+            'srdlgm' : [x for x in trace if x.mnemonic == 'HDSCOPE srdlgm'],
+            'srsub' : [x for x in trace if x.mnemonic == 'HDSCOPE srsub'],
+            }
+    
+    stats = {}
+
+    for k in hdscope.keys():
+        count=len(hdscope[k])
+        cycles=sum([x.cycles for x in hdscope[k]])
+        stalls=sum([x.stall for x in hdscope[k]])
+
+        stats[k] = Namespace(
+                count=count,
+                cycles=cycles,
+                stalls=stalls)
+    print('Mnemonic       #instr #cycles #stalls')
+    k='sbent';print('HDSCOPE {:<7s} {:>4d}, {:>6d}, {:>7d}'.format(k, stats[k].count, stats[k].cycles, stats[k].stalls))
+    k='sbxit';print('HDSCOPE {:<7s} {:>4d}, {:>6d}, {:>7d}'.format(k, stats[k].count, stats[k].cycles, stats[k].stalls))
+    k='srbse';print('HDSCOPE {:<7s} {:>4d}, {:>6d}, {:>7d}'.format(k, stats[k].count, stats[k].cycles, stats[k].stalls))
+    k='srlmt';print('HDSCOPE {:<7s} {:>4d}, {:>6d}, {:>7d}'.format(k, stats[k].count, stats[k].cycles, stats[k].stalls))
+    k='srdlg';print('HDSCOPE {:<7s} {:>4d}, {:>6d}, {:>7d}'.format(k, stats[k].count, stats[k].cycles, stats[k].stalls))
+    k='srdlgm';print('HDSCOPE {:<7s} {:>4d}, {:>6d}, {:>7d}'.format(k, stats[k].count, stats[k].cycles, stats[k].stalls))
+    k='srsub';print('HDSCOPE {:<7s} {:>4d}, {:>6d}, {:>7d}'.format(k, stats[k].count, stats[k].cycles, stats[k].stalls))
+    print('HDSCOPE TOTAL  {:d}, {:>6d}, {:>7d}'.format(
+        sum([value.count for key, value in stats.items()]),
+        sum([value.cycles for key, value in stats.items()]),
+        sum([value.stalls for key, value in stats.items()])))
+    print('TOTAL:        {:d}, {:>6d}'.format(len(trace), sum([x.cycles for x in trace])))
+
+if __name__ == "__main__":
+    main()
