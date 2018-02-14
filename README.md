@@ -50,6 +50,16 @@ directory:
     $ export RISCV=$HOME/riscv-hdscope 
     $ ./build-rv32ima.sh
 
+The testsuite (see below) also requires a version of Spike, the RISC-V ISA
+Simulator built with support for the Pulpino memory map. A suitable version of
+spike can be built using the `build-spike-pulp.sh` script located in the
+`riscv-tools` directory:
+
+    $ cd riscv-tools
+    $ export RISCV=$HOME/riscv-hdscope
+    $ ./build-spike-pulp.sh
+
+The executable, `spike-pulp` will be installed at `$RISCV/bin/spike-pulp`.
 
 ## GCC Plug-in
 
